@@ -152,7 +152,7 @@ int main (int argc, char *argv[]) {
                     default:
 
                         send(novo_descritor_arquivo, opcao_invalida, strlen(opcao_invalida), 0);
-                        send_menu(novo_descritor_arquivo);
+                        menu(novo_descritor_arquivo);
                         break;
                     }
                     
@@ -205,7 +205,7 @@ int main (int argc, char *argv[]) {
 
 
 void menu(int socket){
-    char[] opcoes = "[1] Listar salas disponiveis\n[2]Entrar em sala de bate-papo\n[3] Criar sala de bate-papo\n[4] Desligar\n";
+    char opcoes[]  = "[1] Listar salas disponiveis\n[2]Entrar em sala de bate-papo\n[3] Criar sala de bate-papo\n[4] Desligar\n";
     send(socket, opcoes, strlen(opcoes), 0);
 
 }
