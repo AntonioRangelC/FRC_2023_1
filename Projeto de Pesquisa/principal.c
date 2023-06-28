@@ -126,8 +126,6 @@ int main (int argc, char *argv[]) {
                     menu(novo_descritor_arquivo);
                     recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0); //Lendo opcao do menu
 
-                    // Recebe numero da sala
-                    recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0);
                     escolha = atoi(buffer);
                     
                     switch (escolha)
@@ -158,12 +156,12 @@ int main (int argc, char *argv[]) {
                     
 
                     // De qualquer forma insere ele na sala nova ou existente
-                    entrar_na_sala(novo_descritor_arquivo, sala, nome, tam_nome);
+                    //entrar_na_sala(novo_descritor_arquivo, sala, nome, tam_nome);
 
                     // Se o valor do socket_descritor_arquivo for maior que o atual (mais coisas no cesto)
                     // atualiza esse valor para as proximas iteracoes do loop
-                    if (novo_descritor_arquivo > maior_descritor_arquivo)
-                        maior_descritor_arquivo = novo_descritor_arquivo;
+                    // if (novo_descritor_arquivo > maior_descritor_arquivo)
+                    //     maior_descritor_arquivo = novo_descritor_arquivo;
                 }
                 else {
                     // Se nao for o descritor do socket, cria um buffer, recebe a mensagem
