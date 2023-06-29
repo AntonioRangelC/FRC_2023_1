@@ -44,7 +44,7 @@ void envia_msg (int socket_descritor_arquivo, int server_sd, int sala_id, int cl
 void entrar_na_sala(int socket_descritor_arquivo, int sala_id, char nome[], int tam_nome);
 void executa_comando (int socket_descritor_arquivo, int sala_id, int cliente_id);
 void validar_nome(int socket, char *nome);
-void menu(int socket);
+int menu(int socket);
 
 int main (int argc, char *argv[]) {
     if (argc < 3) {
@@ -92,8 +92,6 @@ int main (int argc, char *argv[]) {
     tamanho_endereco = sizeof(endereco_remoto_socket);
 
     int sala;
-    int escolha;
-    char opcao_invalida[] = "Escolha invalida, digite novamente\n";
     while(1) {
         // Informa que o master receberá descritores de leitura e realiza o select
         read_fds = master;
@@ -124,12 +122,13 @@ int main (int argc, char *argv[]) {
                     printf("%s acabou de entrar na sala de espera\n", nome);
                     
 
-                    menu(novo_descritor_arquivo);
-                    recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0); //Lendo opcao do menu
-
-                    escolha = atoi(buffer);
+                    int escolhido = menu(novo_descritor_arquivo);
+                    //recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0); //Lendo opcao do menu
                     
-                    switch (escolha)
+
+                    //escolha = atoi(buffer);
+                    
+                    switch (escolhido)
                     {
                     case LISTAR_SALAS:
                         lista_salas();
@@ -154,8 +153,9 @@ int main (int argc, char *argv[]) {
                         break;
                     default:
 
-                        send(novo_descritor_arquivo, opcao_invalida, strlen(opcao_invalida), 0);
-                        menu(novo_descritor_arquivo);
+                        //send(novo_descritor_arquivo, opcao_invalida, strlen(opcao_invalida), 0);
+                        //menu(novo_descritor_arquivo);
+                        printf("Erro inesperado");
                         break;
                     }
                     
@@ -209,9 +209,25 @@ int main (int argc, char *argv[]) {
 }
 
 
-void menu(int socket){
+int menu(int socket){
+    int escolha;
+    char opcao_invalida[] = "Escolha invalida, digite novamente\n";
     char opcoes[]  = "[1] Listar salas disponiveis\n[2]Entrar em sala de bate-papo\n[3] Criar sala de bate-papo\n[4] Desligar\n";
     send(socket, opcoes, strlen(opcoes), 0);
+
+    recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0); //Lendo opcao do menu
+
+    escolha = atoi(buffer);
+
+    while (escolha < 1 || escolha > 4)
+    {
+        send(socket, opcao_invalida, strlen(opcao_invalida), 0);
+        send(socket, opcoes, strlen(opcoes), 0);
+        recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0); //Lendo opcao do menu
+        escolha = atoi(buffer);
+    }
+
+    return escolha;
 
 }
 
