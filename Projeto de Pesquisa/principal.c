@@ -6,8 +6,11 @@
 
 #define MAX_SALAS 100
 #define MAX_STR_SIZE 256
-#define NOVA_SALA -1
-
+#define LISTAR_SALAS 1
+#define ENTRAR_SALA 2
+#define NOVA_SALA 3
+#define DESLIGAR 4
+#define TAM_MIN_NOME 5
 #define true 1
 #define false 0
 
@@ -35,10 +38,13 @@ sala salas[MAX_SALAS];
 
 void prepara_servidor();
 void sair_da_sala (int socket_descritor_arquivo, int sala_id, int cliente_id, int retirar_master);
+void lista_salas();
 int cria_sala (int limite);
 void envia_msg (int socket_descritor_arquivo, int server_sd, int sala_id, int cliente_id);
 void entrar_na_sala(int socket_descritor_arquivo, int sala_id, char nome[], int tam_nome);
 void executa_comando (int socket_descritor_arquivo, int sala_id, int cliente_id);
+void validar_nome(int socket, char *nome);
+void menu(int socket);
 
 int main (int argc, char *argv[]) {
     if (argc < 3) {
@@ -86,7 +92,8 @@ int main (int argc, char *argv[]) {
     tamanho_endereco = sizeof(endereco_remoto_socket);
 
     int sala;
-
+    int escolha;
+    char opcao_invalida[] = "Escolha invalida, digite novamente\n";
     while(1) {
         // Informa que o master receberá descritores de leitura e realiza o select
         read_fds = master;
@@ -103,23 +110,58 @@ int main (int argc, char *argv[]) {
 
                     int limite, tam_nome;
                     char nome[MAX_STR_SIZE];
-                    // Recebe nome do usuario
-                    tam_nome = recv(novo_descritor_arquivo, nome, MAX_STR_SIZE, 0);
-                    tam_nome -= 2;
-                    // Recebe numero da sala
-                    recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0);
-                    sala = atoi(buffer);
+
+                    char boas_vindas[] = "Seja bem-vindo(a) as salas de bate-papo, digite seu nome por favor\n";
+                    send(novo_descritor_arquivo, boas_vindas, strlen(boas_vindas), 0);
                     
-                    // Se a sala -1, cria uma nova
-                    if (sala == NOVA_SALA) {
+                    // Recebe nome do usuario
+                    recv(novo_descritor_arquivo, nome, MAX_STR_SIZE, 0);
+
+                    validar_nome(novo_descritor_arquivo, nome);
+                    
+                    tam_nome = strlen(nome);
+                    
+                    printf("%s acabou de entrar na sala de espera\n", nome);
+                    
+
+                    menu(novo_descritor_arquivo);
+                    recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0); //Lendo opcao do menu
+
+                    escolha = atoi(buffer);
+                    
+                    switch (escolha)
+                    {
+                    case LISTAR_SALAS:
+                        lista_salas();
+                        break;
+
+                    case ENTRAR_SALA:
+                        send(novo_descritor_arquivo, "Digite o numero da sala:\n", strlen("Digite o numero da sala:\n"), 0);
+                        recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0);
+                        sala = atoi(buffer);
+                        entrar_na_sala(novo_descritor_arquivo, sala, nome, tam_nome);
+                        break;
+
+                    case NOVA_SALA:
                         // informa limite da sala
+                        send(novo_descritor_arquivo, "Digite o tamanho da sala:\n", strlen( "Digite o tamanho da sala:\n"), 0);
                         recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0);
                         limite = atoi(buffer);
                         sala = cria_sala(limite);
+                        break;
+                    case DESLIGAR:
+
+                        break;
+                    default:
+
+                        send(novo_descritor_arquivo, opcao_invalida, strlen(opcao_invalida), 0);
+                        menu(novo_descritor_arquivo);
+                        break;
                     }
+                    
 
                     // De qualquer forma insere ele na sala nova ou existente
-                    entrar_na_sala(novo_descritor_arquivo, sala, nome, tam_nome);
+                    //entrar_na_sala(novo_descritor_arquivo, sala, nome, tam_nome);
 
                     // Se o valor do socket_descritor_arquivo for maior que o atual (mais coisas no cesto)
                     // atualiza esse valor para as proximas iteracoes do loop
@@ -150,12 +192,14 @@ int main (int argc, char *argv[]) {
                         sair_da_sala(i, sala_id, cliente_id, 1);
                     }
 
-                    // Caso o primeiro caracter da mensagem seja uma / executa comando
-                    if (buffer[0] == '/')
-                        executa_comando(i, sala_id, cliente_id);
-                    // Caso não, encaminha a mensagem na sala
-                    else
-                        envia_msg(i, socket_descritor_arquivo, sala_id, cliente_id);
+                    // // Caso o primeiro caracter da mensagem seja uma / executa comando
+                    // if (buffer[0] == '/')
+                    //     executa_comando(i, sala_id, cliente_id);
+                    // // Caso não, encaminha a mensagem na sala
+                    // else{
+                    //     envia_msg(i, socket_descritor_arquivo, sala_id, cliente_id);
+                    // }
+                    envia_msg(i, socket_descritor_arquivo, sala_id, cliente_id);
                 }
             }
         }
@@ -164,6 +208,24 @@ int main (int argc, char *argv[]) {
     return 0;
 }
 
+
+void menu(int socket){
+    char opcoes[]  = "[1] Listar salas disponiveis\n[2]Entrar em sala de bate-papo\n[3] Criar sala de bate-papo\n[4] Desligar\n";
+    send(socket, opcoes, strlen(opcoes), 0);
+
+}
+
+void validar_nome(int socket, char *nome){
+
+    char mensagem_erro[] = "O nome deve ter pelo menos tres letras, digite novamente.\n";
+    int tamanho_nome = strlen(nome);
+    while( tamanho_nome <= TAM_MIN_NOME){
+
+        send(socket, mensagem_erro , strlen(mensagem_erro), 0);        
+        recv(socket, nome, MAX_STR_SIZE, 0);
+    }
+
+}
 
 
 void prepara_servidor() {
@@ -198,6 +260,39 @@ void sair_da_sala (int socket_descritor_arquivo, int sala_id, int cliente_id, in
     }
 }
 
+void lista_salas () {
+    send(novo_descritor_arquivo, "\n======= Salas Criadas =======\n", strlen( "\n======= Salas Criadas =======\n"), 0);
+    char sala_char[3];
+    char limite_char[3];
+    char qtd_clientes_char[3];
+
+    send(novo_descritor_arquivo, "\n Lista de salas ativas: \n", strlen( "\nLista de salas ativas: \n"), 0);
+    
+    for (int sala = 0; sala < MAX_SALAS; sala++) {
+        if (salas[sala].ativo == true){
+            // for(int i = 0; i < 250; i++){
+            char msg[150];
+            //     msg[i] = ;
+            // }
+            int limite = salas[sala].limite;
+            int qtd_clientes = salas[sala].quantidade_clientes;
+            strcat(msg, "Sala ");
+            sprintf(sala_char, "%d", sala);
+            sprintf(limite_char, "%d", limite);
+            sprintf(qtd_clientes_char, "%d", qtd_clientes);
+            printf("\nLista de salas ativas: \n");
+            printf("Sala %d: ativada, capacidade maxima de usuarios: %d\n", sala, limite);
+            strcat(msg, sala_char);
+            strcat(msg, ": ativa (");
+            strcat(msg, qtd_clientes_char);
+            strcat(msg, "/");
+            strcat(msg, limite_char);
+            strcat(msg, ")\n");
+            send(novo_descritor_arquivo, msg, strlen(msg), 0);
+        }
+    }
+}
+
 int cria_sala (int limite) {
     // Para criar uma sala, deve-se encontrar a primeira sala
     // vazia (ativo = 0) setar como ativa e atualizar seu limite
@@ -223,9 +318,9 @@ int cria_sala (int limite) {
 void envia_msg (int socket_descritor_arquivo, int server_sd, int sala_id, int cliente_id) {
     printf("Sala %d: mensagem do file descriptor %d enviada.\n", sala_id, socket_descritor_arquivo);
     // Descriptor para cada file
-    for (int j = 0; j <= maior_descritor_arquivo; j++)
+    for (int j = 0; j <= maior_descritor_arquivo; j++){
         // checa se ele esta no cesto do master
-        if (FD_ISSET(j, &salas[sala_id].sala_fd))
+        if (FD_ISSET(j, &salas[sala_id].sala_fd)){
             // e checa se o valor nao e o descritor de si mesmo
             if (j != socket_descritor_arquivo && j != server_sd) {
                 // por fim envia a mensagem para aquele socket descritor
@@ -235,10 +330,20 @@ void envia_msg (int socket_descritor_arquivo, int server_sd, int sala_id, int cl
                 strcat(msg, buffer);
                 send(j, msg, 500, 0);
             }
+        }
+
+    }
+        
+
 }
 
 void entrar_na_sala(int socket_descritor_arquivo, int sala_id, char nome[], int tam_nome) {
-    
+    char msg[250];
+    char sala_char[3];
+    sprintf(sala_char, "%d", sala_id);
+    strcat(msg, "Voce esta na sala ");
+    strcat(msg, sala_char);
+    send(socket_descritor_arquivo, msg, strlen( msg), 0);
     printf("Sala %d: file descriptor %d entrando.\n", sala_id, socket_descritor_arquivo);
     // Para inserir na sala, deve-se aumentar a quantidade_clientes, adicionar
     // o descritor no cesto da sala, encontra uma posição na sala
