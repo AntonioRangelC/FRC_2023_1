@@ -39,7 +39,7 @@ sala salas[MAX_SALAS];
 void prepara_servidor();
 void sair_da_sala (int socket_descritor_arquivo, int sala_id, int cliente_id, int retirar_master);
 void lista_salas();
-int cria_sala (int limite);
+int cria_sala (int limite, int socket);
 void envia_msg (int socket_descritor_arquivo, int server_sd, int sala_id, int cliente_id);
 void entrar_na_sala(int socket_descritor_arquivo, int sala_id, char nome[], int tam_nome);
 void executa_comando (int socket_descritor_arquivo, int sala_id, int cliente_id);
@@ -149,7 +149,7 @@ int main (int argc, char *argv[]) {
                         send(novo_descritor_arquivo, "Digite o tamanho da sala:\n", strlen( "Digite o tamanho da sala:\n"), 0);
                         recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0);
                         limite = atoi(buffer);
-                        sala = cria_sala(limite);
+                        sala = cria_sala(limite, novo_descritor_arquivo);
                         break;
                     case DESLIGAR:
 
@@ -325,10 +325,12 @@ void lista_salas () {
     }
 }
 
-int cria_sala (int limite) {
+int cria_sala (int limite, int socket) {
     // Para criar uma sala, deve-se encontrar a primeira sala
     // vazia (ativo = 0) setar como ativa e atualizar seu limite
     int sala;
+    char mensagem[15] = "Sala ";
+    char sala_char[3];
     for (sala = 0; sala < MAX_SALAS; sala++)
         if (salas[sala].ativo == false)
             break;
@@ -343,7 +345,12 @@ int cria_sala (int limite) {
     for (int i = 0; i < limite; i++)
         salas[sala].clientes[i].ativo = false;
 
+    sprintf(sala_char, "%d", sala);
+    strcat(mensagem, sala_char);
+    strcat(mensagem, " criada\n");
+
     printf("Sala %d: ativada, capacidade maxima de %d usuarios.\n", sala, limite);
+    send(socket, mensagem, strlen(mensagem), 0);
     return sala;
 }
 
@@ -375,7 +382,7 @@ void entrar_na_sala(int socket_descritor_arquivo, int sala_id, char nome[], int 
     sprintf(sala_char, "%d", sala_id);
     strcat(msg, "Voce esta na sala ");
     strcat(msg, sala_char);
-    send(socket_descritor_arquivo, msg, strlen( msg), 0);
+    send(socket_descritor_arquivo, msg, strlen(msg), 0);
     printf("Sala %d: file descriptor %d entrando.\n", sala_id, socket_descritor_arquivo);
     // Para inserir na sala, deve-se aumentar a quantidade_clientes, adicionar
     // o descritor no cesto da sala, encontra uma posição na sala
