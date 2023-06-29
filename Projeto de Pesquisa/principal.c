@@ -278,6 +278,7 @@ void validar_entrada(int *sala, int socket)
 void menu(int socket, cliente cliente)
 {
     int invalido = 1, sala, limite, escolha;
+    bool tem_sala_ativa = false;
     char opcao_invalida[] = "Escolha invalida, digite novamente\n";
     char opcoes[] = "[1] Listar salas disponiveis\n[2] Entrar em sala de bate-papo\n[3] Criar sala de bate-papo\n[4] Desligar\n";
     while (invalido)
@@ -298,6 +299,18 @@ void menu(int socket, cliente cliente)
 
         case ENTRAR_SALA:
             invalido = 0;
+            for (int sala = 0; sala < MAX_SALAS; sala++)
+            {
+                if (salas[sala].ativo == true)
+                {
+                    tem_sala_ativa = true;
+                    break;
+                }
+            }
+            if(tem_sala_ativa == false){
+                send(socket, "Nao ha salas ativas, crie uma sala\n", strlen("Nao ha salas ativas, crie uma sala\n"), 0);
+                break;
+            }
             send(socket, "Digite o numero da sala:\n", strlen("Digite o numero da sala:\n"), 0);
             recv(socket, buffer, MAX_STR_SIZE, 0);
             sala = atoi(buffer);
