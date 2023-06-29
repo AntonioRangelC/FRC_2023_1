@@ -270,10 +270,7 @@ void lista_salas () {
     
     for (int sala = 0; sala < MAX_SALAS; sala++) {
         if (salas[sala].ativo == true){
-            // for(int i = 0; i < 250; i++){
-            char msg[150];
-            //     msg[i] = ;
-            // }
+            char *msg = (char*) malloc(sizeof(char) * 53);
             int limite = salas[sala].limite;
             int qtd_clientes = salas[sala].quantidade_clientes;
             strcat(msg, "Sala ");
@@ -338,12 +335,13 @@ void envia_msg (int socket_descritor_arquivo, int server_sd, int sala_id, int cl
 }
 
 void entrar_na_sala(int socket_descritor_arquivo, int sala_id, char nome[], int tam_nome) {
-    char msg[250];
+    char *msg = (char*) malloc(25 * sizeof(char));
     char sala_char[3];
     sprintf(sala_char, "%d", sala_id);
     strcat(msg, "Voce esta na sala ");
     strcat(msg, sala_char);
-    send(socket_descritor_arquivo, msg, strlen( msg), 0);
+    strcat(msg, "\n");
+    send(socket_descritor_arquivo, msg, strlen(msg), 0);
     printf("Sala %d: file descriptor %d entrando.\n", sala_id, socket_descritor_arquivo);
     // Para inserir na sala, deve-se aumentar a quantidade_clientes, adicionar
     // o descritor no cesto da sala, encontra uma posição na sala
