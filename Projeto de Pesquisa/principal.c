@@ -39,12 +39,13 @@ sala salas[MAX_SALAS];
 void prepara_servidor();
 void sair_da_sala (int socket_descritor_arquivo, int sala_id, int cliente_id, int retirar_master);
 void lista_salas();
-int cria_sala (int limite);
+int cria_sala (int limite, int socket);
 void envia_msg (int socket_descritor_arquivo, int server_sd, int sala_id, int cliente_id);
 void entrar_na_sala(int socket_descritor_arquivo, int sala_id, char nome[], int tam_nome);
 void executa_comando (int socket_descritor_arquivo, int sala_id, int cliente_id);
 void validar_nome(int socket, char *nome);
 void menu(int socket);
+void validar_entrada(int *sala, int socket);
 
 int main (int argc, char *argv[]) {
     if (argc < 3) {
@@ -139,6 +140,7 @@ int main (int argc, char *argv[]) {
                         send(novo_descritor_arquivo, "Digite o numero da sala:\n", strlen("Digite o numero da sala:\n"), 0);
                         recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0);
                         sala = atoi(buffer);
+                        validar_entrada(&sala, novo_descritor_arquivo);
                         entrar_na_sala(novo_descritor_arquivo, sala, nome, tam_nome);
                         break;
 
@@ -147,7 +149,7 @@ int main (int argc, char *argv[]) {
                         send(novo_descritor_arquivo, "Digite o tamanho da sala:\n", strlen( "Digite o tamanho da sala:\n"), 0);
                         recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0);
                         limite = atoi(buffer);
-                        sala = cria_sala(limite);
+                        sala = cria_sala(limite, novo_descritor_arquivo);
                         break;
                     case DESLIGAR:
 
@@ -209,8 +211,38 @@ int main (int argc, char *argv[]) {
 }
 
 
+void validar_entrada(int *sala, int socket){
+    char excedeu_tamanho[] = "Os numeros das salas so vao de 1 a 100, digite novamente\n";
+    char sala_inativa[] = "Esta sala esta inativa, digite o numero de uma sala ativa\n";
+    char sala_lotada[] = "Esta sala esta lotada\n";
+    int invalido = 1;
+    char buffer[MAX_STR_SIZE];
+    while(invalido){
+        //validar se a sala existe
+        if(*sala > MAX_SALAS){
+            send(socket, excedeu_tamanho, strlen(excedeu_tamanho), 0);
+            recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0);
+            *sala = atoi(buffer);
+        }
+        else if(salas[*sala].ativo == false){
+            send(socket, sala_inativa, strlen(sala_inativa), 0);
+            recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0);
+            *sala = atoi(buffer);
+        }
+        else if(salas[*sala].limite == salas[*sala].quantidade_clientes){
+            send(socket, sala_lotada, strlen(sala_lotada), 0);
+            recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0);
+            *sala = atoi(buffer);
+        }
+        else{
+            invalido = 0;
+        }
+    }
+    
+}
+
 void menu(int socket){
-    char opcoes[]  = "[1] Listar salas disponiveis\n[2]Entrar em sala de bate-papo\n[3] Criar sala de bate-papo\n[4] Desligar\n";
+    char opcoes[]  = "[1] Listar salas disponiveis\n[2] Entrar em sala de bate-papo\n[3] Criar sala de bate-papo\n[4] Desligar\n";
     send(socket, opcoes, strlen(opcoes), 0);
 
 }
@@ -290,10 +322,12 @@ void lista_salas () {
     }
 }
 
-int cria_sala (int limite) {
+int cria_sala (int limite, int socket) {
     // Para criar uma sala, deve-se encontrar a primeira sala
     // vazia (ativo = 0) setar como ativa e atualizar seu limite
     int sala;
+    char mensagem[15] = "Sala ";
+    char sala_char[3];
     for (sala = 0; sala < MAX_SALAS; sala++)
         if (salas[sala].ativo == false)
             break;
@@ -308,7 +342,12 @@ int cria_sala (int limite) {
     for (int i = 0; i < limite; i++)
         salas[sala].clientes[i].ativo = false;
 
+    sprintf(sala_char, "%d", sala);
+    strcat(mensagem, sala_char);
+    strcat(mensagem, " criada\n");
+
     printf("Sala %d: ativada, capacidade maxima de %d usuarios.\n", sala, limite);
+    send(socket, mensagem, strlen(mensagem), 0);
     return sala;
 }
 
