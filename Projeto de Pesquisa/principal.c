@@ -436,13 +436,13 @@ void sair_da_sala(int socket, sala salas[], cliente clientes[], int total_client
         clientes[client_index].sala = -1;
 
         salas[sala_id].quantidade_clientes--;
-        sprintf(response, "Você saiu da sala %d.\n", sala_id);
+        sprintf(response, "Voce saiu da sala %d.\n", sala_id);
         send(socket, response, strlen(response), 0);
         menu(socket, clientes[client_index]);
     }
     else
     {
-        sprintf(response, "Você não está em uma sala.\n");
+        sprintf(response, "Voce não está em uma sala.\n");
         send(socket, response, strlen(response), 0);
     }
 }
@@ -608,7 +608,7 @@ void desconectar_cliente(int socket, sala salas[], cliente clientes[], int total
         // }
 
         // Fechar o socket e marcar como 0 na lista de sockets de clientes
-        sprintf(msg1, "Você saiu do chat.\n");
+        sprintf(msg1, "Voce saiu do chat.\n");
         send(socket, msg1, strlen(msg1), 0);
 
         for (int j = 0; j < QTD_MAX_CLIENTES; j++)
