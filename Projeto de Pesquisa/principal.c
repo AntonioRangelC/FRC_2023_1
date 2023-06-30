@@ -9,7 +9,8 @@
 #define LISTAR_SALAS 1
 #define ENTRAR_SALA 2
 #define NOVA_SALA 3
-#define DESCONECTAR 4
+#define LISTAR_PARTICIPANTES_SALA 4
+#define DESCONECTAR 5
 #define TAM_MIN_NOME 2
 #define QTD_MAX_CLIENTES 100
 #define true 1
@@ -53,6 +54,7 @@ void menu(int socket, cliente cliente);
 int validar_entrada(int sala, int socket);
 void validar_nome(int socket, char *nome, int *tam_nome);
 void desconectar_cliente(int socket, sala salas[], int total_salas, cliente clientes[], int total_clientes);
+void lista_participantes_sala(int socket, int sala);
 
 int qtd_clientes = 0;
 int qtd_salas = 0;
@@ -286,7 +288,7 @@ void menu(int socket, cliente cliente)
     int invalido = 1, sala, limite, escolha;
     bool tem_sala_ativa = false;
     char opcao_invalida[] = "Escolha invalida, digite novamente\n";
-    char opcoes[] = "[1] Listar salas disponiveis\n[2] Entrar em sala de bate-papo\n[3] Criar sala de bate-papo\n[4] Desconectar\n";
+    char opcoes[] = "\n[1] Listar salas disponiveis\n[2] Entrar em sala de bate-papo\n[3] Criar sala de bate-papo\n[4] Listar participantes de uma sala\n[5] Desconectar\n";
     char entrada[2];
     // for(int aux = 0; aux < MAX_STR_SIZE; aux++){
     //     buffer[aux] = '';
@@ -338,6 +340,27 @@ void menu(int socket, cliente cliente)
             limite = atoi(buffer);
             sala = cria_sala(limite, socket);
             break;
+        case LISTAR_PARTICIPANTES_SALA:
+            invalido = 0;
+            for (int sala = 0; sala < MAX_SALAS; sala++)
+            {
+                if (salas[sala].ativo == true)
+                {
+                    tem_sala_ativa = true;
+                    break;
+                }
+            }
+            if(tem_sala_ativa == false){
+                send(socket, "Nao ha salas ativas para serem listadas\n", strlen("Nao ha salas ativas para serem listadas\n"), 0);
+                break;
+            }
+
+            send(socket, "Digite o numero da sala:\n", strlen("Digite o numero da sala:\n"), 0);
+            recv(socket, buffer, MAX_STR_SIZE, 0);
+            sala = atoi(buffer);
+            lista_participantes_sala(socket, sala);
+            break;
+
         case DESCONECTAR:
             invalido = 0;
             desconectar_cliente(socket, salas, qtd_salas, clientes_aplicacao, qtd_clientes);
@@ -576,6 +599,22 @@ void desconectar_cliente(int socket, sala salas[], int total_salas, cliente clie
         send(socket, msg2, strlen(msg2), 0);
     }
     close(socket);
+}
+
+void lista_participantes_sala(int socket, int sala_id){
+    if(salas[sala_id].ativo == false){
+        send(socket, "Sala nao existe.\n", strlen("Sala nao existe.\n"), 0);
+    } else{
+        for (int i = 0; i < salas[sala_id].limite; i++)
+        {
+            if (salas[sala_id].clientes[i].ativo == true)
+            {
+                send(socket, "Nome: ", strlen("Nome: "), 0);
+                send(socket, salas[sala_id].clientes[i].nome, strlen(salas[sala_id].clientes[i].nome), 0);
+                send(socket, "\n", strlen("\n"), 0);
+            }
+        }
+    }
 }
 
 // void executa_comando (int socket_descritor_arquivo, int sala_id, int cliente_id) {
