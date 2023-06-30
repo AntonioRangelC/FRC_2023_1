@@ -10,7 +10,7 @@
 #define ENTRAR_SALA 2
 #define NOVA_SALA 3
 #define DESLIGAR 4
-#define TAM_MIN_NOME 5
+#define TAM_MIN_NOME 2
 #define QTD_MAX_CLIENTES 100
 #define true 1
 #define false 0
@@ -49,9 +49,9 @@ int cria_sala(int limite, int socket);
 void envia_msg(int socket_descritor_arquivo, int server_sd, int sala_id, int cliente_id);
 void entrar_na_sala(int socket_descritor_arquivo, int sala_id, cliente cliente);
 void executa_comando(int socket_descritor_arquivo, int sala_id, int cliente_id);
-void validar_nome(int socket, char *nome);
 void menu(int socket, cliente cliente);
 void validar_entrada(int *sala, int socket);
+void validar_nome(int socket, char *nome, int *tam_nome);
 
 int qtd_clientes = 0;
 
@@ -146,17 +146,20 @@ int main(int argc, char *argv[])
                     send(novo_descritor_arquivo, boas_vindas, strlen(boas_vindas), 0);
 
                     // Recebe nome do usuario
-                    recv(novo_descritor_arquivo, nome, MAX_STR_SIZE, 0);
-
-                    validar_nome(novo_descritor_arquivo, nome);
-
+                    int tam_nome = recv(novo_descritor_arquivo, nome, MAX_STR_SIZE, 0);
+                    tam_nome -= 2;
+                    
+                    validar_nome(novo_descritor_arquivo, nome, &tam_nome);
+                    nome[tam_nome] = '\0';
                     // cria nova instancia do novo cliente
                     cliente novo_cliente;
                     novo_cliente.cliente_sd = novo_descritor_arquivo;
                     novo_cliente.ativo = false;
                     novo_cliente.sala = -1;
                     novo_cliente.id_cliente = qtd_clientes;
-                    strcpy(novo_cliente.nome, nome);
+                    strncpy(novo_cliente.nome, nome, tam_nome);
+
+                    novo_cliente.nome[tam_nome] = '\0';
                     clientes_aplicacao[qtd_clientes] = novo_cliente; // adiciona o novo cliente ao vetor de clientes conectados a aplicacao
                     qtd_clientes++;
 
@@ -321,17 +324,20 @@ void menu(int socket, cliente cliente)
     }
 }
 
-void validar_nome(int socket, char *nome)
+void validar_nome(int socket, char *nome, int *tam_nome)
 {
 
     char mensagem_erro[] = "O nome deve ter pelo menos tres letras, digite novamente.\n";
-    int tamanho_nome = strlen(nome);
-    while (tamanho_nome <= TAM_MIN_NOME)
+    
+    while (*tam_nome <= TAM_MIN_NOME)
     {
 
         send(socket, mensagem_erro, strlen(mensagem_erro), 0);
-        recv(socket, nome, MAX_STR_SIZE, 0);
+        
+        *tam_nome = recv(socket, nome, MAX_STR_SIZE, 0);
+        *tam_nome -= 2;
     }
+
 }
 
 void prepara_servidor()
