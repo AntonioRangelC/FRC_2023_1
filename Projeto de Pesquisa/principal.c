@@ -431,6 +431,13 @@ void sair_da_sala(int socket, sala salas[], cliente clientes[], int total_client
     if (client_index != -1)
     {
         int sala_id = clientes[client_index].sala;
+        for(int i = 0; i < salas[sala_id].quantidade_clientes; i++){
+            if(salas[sala_id].clientes[i].cliente_sd == socket){
+                salas[sala_id].clientes[i].ativo = false;
+                break;
+            }
+        }
+
         clientes[client_index].sala = -1;
 
         salas[sala_id].quantidade_clientes--;
