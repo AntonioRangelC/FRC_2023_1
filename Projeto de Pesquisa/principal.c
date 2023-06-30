@@ -9,7 +9,7 @@
 #define LISTAR_SALAS 1
 #define ENTRAR_SALA 2
 #define NOVA_SALA 3
-#define DESLIGAR 4
+#define DESCONECTAR 4
 #define TAM_MIN_NOME 2
 #define QTD_MAX_CLIENTES 100
 #define true 1
@@ -52,8 +52,10 @@ void executa_comando(int socket_descritor_arquivo, int sala_id, int cliente_id);
 void menu(int socket, cliente cliente);
 void validar_entrada(int *sala, int socket);
 void validar_nome(int socket, char *nome, int *tam_nome);
+void desconectar_cliente(int socket, sala salas[], int total_salas, cliente clientes[], int total_clientes);
 
 int qtd_clientes = 0;
+int qtd_salas = 0;
 
 int main(int argc, char *argv[])
 {
@@ -280,7 +282,7 @@ void menu(int socket, cliente cliente)
     int invalido = 1, sala, limite, escolha;
     bool tem_sala_ativa = false;
     char opcao_invalida[] = "Escolha invalida, digite novamente\n";
-    char opcoes[] = "[1] Listar salas disponiveis\n[2] Entrar em sala de bate-papo\n[3] Criar sala de bate-papo\n[4] Desligar\n";
+    char opcoes[] = "[1] Listar salas disponiveis\n[2] Entrar em sala de bate-papo\n[3] Criar sala de bate-papo\n[4] Desconectar\n";
     while (invalido)
     {
 
@@ -326,8 +328,9 @@ void menu(int socket, cliente cliente)
             limite = atoi(buffer);
             sala = cria_sala(limite, socket);
             break;
-        case DESLIGAR:
+        case DESCONECTAR:
             invalido = 0;
+            desconectar_cliente(socket, salas, qtd_salas, clientes_aplicacao, qtd_clientes);
             break;
         default:
 
@@ -513,6 +516,56 @@ void entrar_na_sala(int socket_descritor_arquivo, int sala_id, cliente cliente)
             break;
         }
     }
+}
+
+void desconectar_cliente(int socket, sala salas[], int total_salas, cliente clientes[], int total_clientes)
+{
+    char msg1[21];
+    char msg2[32];
+    int clientIndex = -1;
+    for (int i = 0; i < total_clientes; i++)
+    {
+        if (clientes[i].cliente_sd == socket)
+        {
+            clientIndex = i;
+            break;
+        }
+    }
+
+    if (clientIndex != -1)
+    {
+        // Remover cliente da lista de clientes
+        for (int j = clientIndex; j < total_clientes - 1; j++)
+        {
+            clientes[j] = clientes[j + 1];
+        }
+        total_clientes--;
+
+        // Se o cliente estiver em uma sala, removê-lo da sala
+        // if (clientes[clientIndex].sala != -1)
+        // {
+        //     leave_room(socket, rooms, totalRooms, clients, totalClients);
+        // }
+
+        // Fechar o socket e marcar como 0 na lista de sockets de clientes
+        sprintf(msg1, "Você saiu do chat.\n");
+        send(socket, msg1, strlen(msg1), 0);
+
+        for (int j = 0; j < QTD_MAX_CLIENTES; j++)
+        {
+            if (socket == clientes[j].cliente_sd)
+            {
+                clientes[j].cliente_sd = 0;
+                break;
+            }
+        }
+    }
+    else
+    {
+        sprintf(msg2, "Erro ao desconectar o cliente.\n");
+        send(socket, msg2, strlen(msg2), 0);
+    }
+    close(socket);
 }
 
 // void executa_comando (int socket_descritor_arquivo, int sala_id, int cliente_id) {
