@@ -60,7 +60,7 @@ int qtd_clientes = 0;
 
 int main(int argc, char *argv[])
 {
-
+    char enter_continuar[50] = "Pressione enter para continuar!\n";
     int sala, id_socket;
     int escolha;
 
@@ -113,7 +113,6 @@ int main(int argc, char *argv[])
         FD_SET(socket_descritor_arquivo, &read_fds);
         maior_descritor_arquivo = socket_descritor_arquivo;
 
-
         // Adicionar sockets de clientes à lista de descritores de arquivo
         for (int j = 0; j < QTD_MAX_CLIENTES; j++)
         {
@@ -125,14 +124,15 @@ int main(int argc, char *argv[])
             if (id_socket > maior_descritor_arquivo)
                 maior_descritor_arquivo = id_socket;
         }
+
         // Informa que o master receberá descritores de leitura e realiza o select
-        //read_fds = master;
+        // read_fds = master;
         select(maior_descritor_arquivo + 1, &read_fds, NULL, NULL, NULL);
 
         for (int i = 0; i <= maior_descritor_arquivo; i++)
         {
             // Testa se o file descriptor esta no cesto
-            
+
             if (FD_ISSET(i, &read_fds))
             {
                 // Checa o file descriptor e o socket
@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
                     // Recebe nome do usuario
                     int tam_nome = recv(novo_descritor_arquivo, nome, MAX_STR_SIZE, 0);
                     tam_nome -= 2;
-                    
+
                     validar_nome(novo_descritor_arquivo, nome, &tam_nome);
                     nome[tam_nome] = '\0';
                     // cria nova instancia do novo cliente
@@ -170,7 +170,11 @@ int main(int argc, char *argv[])
                     {
                         printf("Nome: %s\n", clientes_aplicacao[aux].nome);
                     }
+
+                    send(novo_descritor_arquivo, enter_continuar, strlen(enter_continuar), 0);
                     printf("%s acabou de entrar na sala de espera\n", nome);
+
+                    
 
                     menu(novo_descritor_arquivo, novo_cliente);
 
@@ -188,20 +192,23 @@ int main(int argc, char *argv[])
             }
         }
 
-        for (int aux = 0; aux < qtd_clientes; aux++){
+        for (int aux = 0; aux < qtd_clientes; aux++)
+        {
             printf("%d %s\n", clientes_aplicacao[aux].cliente_sd, clientes_aplicacao[aux].nome);
             id_socket = clientes_aplicacao[aux].cliente_sd;
 
-            if (FD_ISSET(id_socket, &read_fds)){
+            if (FD_ISSET(id_socket, &read_fds))
+            {
 
-                
-
-                if (clientes_aplicacao[aux].sala == -1){
+                if (clientes_aplicacao[aux].sala == -1)
+                {
                     // cliente nao esta em nenhuma sala
                     printf("nao esta em nenhuma sala\n");
+
                     menu(clientes_aplicacao[aux].cliente_sd, clientes_aplicacao[aux]);
                 }
-                else{
+                else
+                {
                     // Se nao for o descritor do id_socket, cria um buffer, recebe a mensagem
                     // e a retransmite por todos os id_sockets conectados
                     printf("else\n");
@@ -251,7 +258,7 @@ int validar_entrada(int sala, int socket)
     char sala_lotada[] = "Esta sala esta lotada\n";
     int invalido = 1;
     char buffer[MAX_STR_SIZE];
-    
+
     // validar se a sala existe
     if (sala > MAX_SALAS)
     {
@@ -278,12 +285,12 @@ int validar_entrada(int sala, int socket)
     {
         return 1;
     }
-    
 }
 
 void menu(int socket, cliente cliente)
 {
-
+    char enter_continuar[50] = "Pressione enter para continuar!\n";
+    
     int invalido = 1, sala, limite, escolha;
     bool tem_sala_ativa = false;
     char opcao_invalida[] = "Escolha invalida, digite novamente\n";
@@ -295,6 +302,8 @@ void menu(int socket, cliente cliente)
     while (invalido)
     {
 
+        char enter[3];
+        recv(socket, enter, sizeof(enter), 0);
         send(socket, opcoes, strlen(opcoes), 0);
 
         recv(socket, entrada, MAX_STR_SIZE, 0); // Lendo opcao do menu
@@ -306,6 +315,7 @@ void menu(int socket, cliente cliente)
         case LISTAR_SALAS:
             invalido = 0;
             lista_salas();
+            send(novo_descritor_arquivo, enter_continuar, strlen(enter_continuar), 0);
             break;
 
         case ENTRAR_SALA:
@@ -318,17 +328,19 @@ void menu(int socket, cliente cliente)
                     break;
                 }
             }
-            if(tem_sala_ativa == false){
+            if (tem_sala_ativa == false)
+            {
                 send(socket, "Nao ha salas ativas, crie uma sala\n", strlen("Nao ha salas ativas, crie uma sala\n"), 0);
                 break;
             }
             send(socket, "Digite o numero da sala:\n", strlen("Digite o numero da sala:\n"), 0);
             recv(socket, buffer, MAX_STR_SIZE, 0);
             sala = atoi(buffer);
-            if(validar_entrada(sala, socket)){
+            if (validar_entrada(sala, socket))
+            {
                 entrar_na_sala(socket, sala, cliente);
             }
-            
+
             break;
 
         case NOVA_SALA:
@@ -338,6 +350,7 @@ void menu(int socket, cliente cliente)
             recv(socket, buffer, MAX_STR_SIZE, 0);
             limite = atoi(buffer);
             sala = cria_sala(limite, socket);
+            send(novo_descritor_arquivo, enter_continuar, strlen(enter_continuar), 0);
             break;
         case LISTAR_PARTICIPANTES_SALA:
             invalido = 0;
@@ -370,22 +383,23 @@ void menu(int socket, cliente cliente)
             break;
         }
     }
+
+    send(socket, "\n", strlen("\n"), 0);
 }
 
 void validar_nome(int socket, char *nome, int *tam_nome)
 {
 
     char mensagem_erro[] = "O nome deve ter pelo menos tres letras, digite novamente.\n";
-    
+
     while (*tam_nome <= TAM_MIN_NOME)
     {
 
         send(socket, mensagem_erro, strlen(mensagem_erro), 0);
-        
+
         *tam_nome = recv(socket, nome, MAX_STR_SIZE, 0);
         *tam_nome -= 2;
     }
-
 }
 
 void prepara_servidor()
