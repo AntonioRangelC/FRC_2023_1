@@ -44,7 +44,7 @@ sala salas[MAX_SALAS];
 cliente clientes_aplicacao[QTD_MAX_CLIENTES];
 
 void prepara_servidor();
-void sair_da_sala(int socket_descritor_arquivo, int sala_id, int cliente_id, int retirar_master);
+void sair_da_sala(int socket, sala salas[], cliente clientes[], int total_clientes);
 void lista_salas();
 int cria_sala(int limite, int socket);
 void envia_msg(int socket_descritor_arquivo, int server_sd, int sala_id, int cliente_id);
@@ -53,11 +53,10 @@ void executa_comando(int socket_descritor_arquivo, int sala_id, int cliente_id);
 void menu(int socket, cliente cliente);
 int validar_entrada(int sala, int socket);
 void validar_nome(int socket, char *nome, int *tam_nome);
-void desconectar_cliente(int socket, sala salas[], int total_salas, cliente clientes[], int total_clientes);
+void desconectar_cliente(int socket, sala salas[], cliente clientes[], int total_clientes);
 void lista_participantes_sala(int socket, int sala);
 
 int qtd_clientes = 0;
-int qtd_salas = 0;
 
 int main(int argc, char *argv[])
 {
@@ -225,7 +224,7 @@ int main(int argc, char *argv[])
                     if (num_bytes == 0)
                     {
                         printf("Desconectando forcadamente o descritor %d\n", id_socket);
-                        sair_da_sala(id_socket, sala_id, cliente_id, 1);
+                        sair_da_sala(id_socket, salas, clientes_aplicacao, qtd_clientes);
                     }
 
                     // // Caso o primeiro caracter da mensagem seja uma / executa comando
@@ -363,7 +362,7 @@ void menu(int socket, cliente cliente)
 
         case DESCONECTAR:
             invalido = 0;
-            desconectar_cliente(socket, salas, qtd_salas, clientes_aplicacao, qtd_clientes);
+            desconectar_cliente(socket, salas, clientes_aplicacao, qtd_clientes);
             break;
         default:
 
@@ -404,24 +403,33 @@ void prepara_servidor()
     }
 }
 
-void sair_da_sala(int socket_descritor_arquivo, int sala_id, int cliente_id, int retirar_master)
+void sair_da_sala(int socket, sala salas[], cliente clientes[], int total_clientes)
 {
-    printf("Sala %d: arquivo descriptor %d, user %s saiu.\n", sala_id, socket_descritor_arquivo, salas[sala_id].clientes[cliente_id].nome);
-    // retirar o descritor da master e da sala.
-    salas[sala_id].clientes[cliente_id].ativo = 0;
-    // Ao sair da sala, deve-se diminuir a quantidade_clientes de clientes
-    salas[sala_id].quantidade_clientes--;
-    if (retirar_master == 1)
-        FD_CLR(socket_descritor_arquivo, &master);
-    FD_CLR(socket_descritor_arquivo, &salas[sala_id].sala_fd);
-
-    // E caso a quantidade_clientes fique igual 0, deve-se fechar a mesma
-    // deixando-a inativa e desalocando o vetor de clientes
-    if (salas[sala_id].quantidade_clientes == 0)
+    char response[250];
+    int client_index = -1;
+    for (int i = 0; i < total_clientes; i++)
     {
-        printf("Sala %d: sairam todos os users, sala sera desativada!\n", sala_id);
-        free(salas[sala_id].clientes);
-        salas[sala_id].ativo = false;
+        if (clientes[i].cliente_sd == socket)
+        {
+            client_index = i;
+            break;
+        }
+    }
+
+    if (client_index != -1)
+    {
+        int sala_id = clientes[client_index].sala;
+        clientes[client_index].sala = -1;
+
+        salas[sala_id].quantidade_clientes--;
+        sprintf(response, "Você saiu da sala %d.\n", sala_id);
+        send(socket, response, strlen(response), 0);
+        menu(socket, clientes[client_index]);
+    }
+    else
+    {
+        sprintf(response, "Você não está em uma sala.\n");
+        send(socket, response, strlen(response), 0);
     }
 }
 
@@ -490,7 +498,11 @@ int cria_sala(int limite, int socket)
 
 void envia_msg(int socket_descritor_arquivo, int server_sd, int sala_id, int cliente_id)
 {
-    printf("Sala %d: mensagem do file descriptor %d enviada.\n", sala_id, socket_descritor_arquivo);
+    if(strncmp(buffer, "exit", 4) == 0) {
+        sair_da_sala(socket_descritor_arquivo, salas, clientes_aplicacao, qtd_clientes);
+    }
+
+    printf("Sala %d: mensagem '%s' enviada por %s.\n", sala_id, buffer, salas[sala_id].clientes[cliente_id].nome);
     // Descriptor para cada file
     for (int j = 0; j <= maior_descritor_arquivo; j++)
     {
@@ -518,8 +530,8 @@ void entrar_na_sala(int socket_descritor_arquivo, int sala_id, cliente cliente)
     sprintf(sala_char, "%d", sala_id);
     strcat(msg, "Voce esta na sala ");
     strcat(msg, sala_char);
-    strcat(msg, "\n");
     send(socket_descritor_arquivo, msg, strlen(msg), 0);
+    send(socket_descritor_arquivo, "  - Digite 'exit' para sair da sala\n", strlen("  - Digite 'exit' para sair da sala\n"), 0);
     printf("Sala %d: file descriptor %d entrando.\n", sala_id, socket_descritor_arquivo);
     // Para inserir na sala, deve-se aumentar a quantidade_clientes, adicionar
     // o descritor no cesto da sala, encontra uma posição na sala
@@ -527,6 +539,7 @@ void entrar_na_sala(int socket_descritor_arquivo, int sala_id, cliente cliente)
     // socket descriptor, ativo e nome
     FD_SET(socket_descritor_arquivo, &salas[sala_id].sala_fd);
     salas[sala_id].quantidade_clientes++;
+
 
     for (int i = 0; i < salas[sala_id].limite; i++)
     {
@@ -542,8 +555,8 @@ void entrar_na_sala(int socket_descritor_arquivo, int sala_id, cliente cliente)
             {
                 if (clientes_aplicacao[aux].id_cliente == cliente.id_cliente)
                 {
-                    salas[sala_id].clientes[i].sala = i;
-                    clientes_aplicacao[aux].sala = i;
+                    salas[sala_id].clientes[i].sala = sala_id;
+                    clientes_aplicacao[aux].sala = sala_id;
                 }
             }
             break;
@@ -551,7 +564,7 @@ void entrar_na_sala(int socket_descritor_arquivo, int sala_id, cliente cliente)
     }
 }
 
-void desconectar_cliente(int socket, sala salas[], int total_salas, cliente clientes[], int total_clientes)
+void desconectar_cliente(int socket, sala salas[], cliente clientes[], int total_clientes)
 {
     char msg1[21];
     char msg2[32];
