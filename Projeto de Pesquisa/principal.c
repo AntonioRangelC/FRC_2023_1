@@ -50,7 +50,7 @@ void envia_msg(int socket_descritor_arquivo, int server_sd, int sala_id, int cli
 void entrar_na_sala(int socket_descritor_arquivo, int sala_id, cliente cliente);
 void executa_comando(int socket_descritor_arquivo, int sala_id, int cliente_id);
 void menu(int socket, cliente cliente);
-void validar_entrada(int *sala, int socket);
+int validar_entrada(int sala, int socket);
 void validar_nome(int socket, char *nome, int *tam_nome);
 void desconectar_cliente(int socket, sala salas[], int total_salas, cliente clientes[], int total_clientes);
 
@@ -242,55 +242,63 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void validar_entrada(int *sala, int socket)
+// A funcao retorna 1 se for possivel entrar na sala e 0 caso contrario
+int validar_entrada(int sala, int socket)
 {
     char excedeu_tamanho[] = "Os numeros das salas so vao de 1 a 100, digite novamente\n";
     char sala_inativa[] = "Esta sala esta inativa, digite o numero de uma sala ativa\n";
     char sala_lotada[] = "Esta sala esta lotada\n";
     int invalido = 1;
     char buffer[MAX_STR_SIZE];
-    while (invalido)
+    
+    // validar se a sala existe
+    if (sala > MAX_SALAS)
     {
-        // validar se a sala existe
-        if (*sala > MAX_SALAS)
-        {
-            send(socket, excedeu_tamanho, strlen(excedeu_tamanho), 0);
-            recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0);
-            *sala = atoi(buffer);
-        }
-        else if (salas[*sala].ativo == false)
-        {
-            send(socket, sala_inativa, strlen(sala_inativa), 0);
-            recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0);
-            *sala = atoi(buffer);
-        }
-        else if (salas[*sala].limite == salas[*sala].quantidade_clientes)
-        {
-            send(socket, sala_lotada, strlen(sala_lotada), 0);
-            recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0);
-            *sala = atoi(buffer);
-        }
-        else
-        {
-            invalido = 0;
-        }
+        send(socket, excedeu_tamanho, strlen(excedeu_tamanho), 0);
+        return 0;
+        // recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0);
+        // *sala = atoi(buffer);
     }
+    else if (salas[sala].ativo == false)
+    {
+        send(socket, sala_inativa, strlen(sala_inativa), 0);
+        return 0;
+        // recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0);
+        // *sala = atoi(buffer);
+    }
+    else if (salas[sala].limite == salas[sala].quantidade_clientes)
+    {
+        send(socket, sala_lotada, strlen(sala_lotada), 0);
+        return 0;
+        // recv(novo_descritor_arquivo, buffer, MAX_STR_SIZE, 0);
+        // *sala = atoi(buffer);
+    }
+    else
+    {
+        return 1;
+    }
+    
 }
 
 void menu(int socket, cliente cliente)
 {
+
     int invalido = 1, sala, limite, escolha;
     bool tem_sala_ativa = false;
     char opcao_invalida[] = "Escolha invalida, digite novamente\n";
     char opcoes[] = "[1] Listar salas disponiveis\n[2] Entrar em sala de bate-papo\n[3] Criar sala de bate-papo\n[4] Desconectar\n";
+    char entrada[2];
+    // for(int aux = 0; aux < MAX_STR_SIZE; aux++){
+    //     buffer[aux] = '';
+    // }
     while (invalido)
     {
 
         send(socket, opcoes, strlen(opcoes), 0);
 
-        recv(socket, buffer, MAX_STR_SIZE, 0); // Lendo opcao do menu
+        recv(socket, entrada, MAX_STR_SIZE, 0); // Lendo opcao do menu
 
-        escolha = atoi(buffer);
+        escolha = atoi(entrada);
 
         switch (escolha)
         {
@@ -316,8 +324,10 @@ void menu(int socket, cliente cliente)
             send(socket, "Digite o numero da sala:\n", strlen("Digite o numero da sala:\n"), 0);
             recv(socket, buffer, MAX_STR_SIZE, 0);
             sala = atoi(buffer);
-            validar_entrada(&sala, socket);
-            entrar_na_sala(socket, sala, cliente);
+            if(validar_entrada(sala, socket)){
+                entrar_na_sala(socket, sala, cliente);
+            }
+            
             break;
 
         case NOVA_SALA:
