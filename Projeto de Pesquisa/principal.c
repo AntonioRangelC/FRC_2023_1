@@ -648,6 +648,7 @@ void lista_participantes_sala(int socket, int sala_id){
             }
         }
     }
+    send(socket, enter_continuar, strlen(enter_continuar), 0);
 }
 
 // void executa_comando (int socket_descritor_arquivo, int sala_id, int cliente_id) {
