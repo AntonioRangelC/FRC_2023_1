@@ -57,10 +57,10 @@ void desconectar_cliente(int socket, sala salas[], cliente clientes[], int total
 void lista_participantes_sala(int socket, int sala);
 
 int qtd_clientes = 0;
+char enter_continuar[50] = "Pressione enter para continuar!\n";
 
 int main(int argc, char *argv[])
 {
-    char enter_continuar[50] = "Pressione enter para continuar!\n";
     int sala, id_socket;
     int escolha;
 
@@ -288,9 +288,7 @@ int validar_entrada(int sala, int socket)
 }
 
 void menu(int socket, cliente cliente)
-{
-    char enter_continuar[50] = "Pressione enter para continuar!\n";
-    
+{    
     int invalido = 1, sala, limite, escolha;
     bool tem_sala_ativa = false;
     char opcao_invalida[] = "Escolha invalida, digite novamente\n";
@@ -438,6 +436,7 @@ void sair_da_sala(int socket, sala salas[], cliente clientes[], int total_client
         salas[sala_id].quantidade_clientes--;
         sprintf(response, "Voce saiu da sala %d.\n", sala_id);
         send(socket, response, strlen(response), 0);
+        send(novo_descritor_arquivo, "Pressione enter para continuar!\n", strlen("Pressione enter para continuar!\n"), 0);
         menu(socket, clientes[client_index]);
     }
     else
