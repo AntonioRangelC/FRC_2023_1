@@ -59,7 +59,7 @@ int qtd_salas = 0;
 
 int main(int argc, char *argv[])
 {
-
+    char enter_continuar[50] = "Pressione enter para continuar!\n";
     int sala, id_socket;
     int escolha;
 
@@ -169,10 +169,11 @@ int main(int argc, char *argv[])
                     {
                         printf("Nome: %s\n", clientes_aplicacao[aux].nome);
                     }
+
+                    send(novo_descritor_arquivo, enter_continuar, strlen(enter_continuar), 0);
                     printf("%s acabou de entrar na sala de espera\n", nome);
 
-                    char enter_continuar[50] = "Pressione enter para continuar!\n";
-                    send(novo_descritor_arquivo, enter_continuar, strlen(enter_continuar), 0);
+                    
 
                     menu(novo_descritor_arquivo, novo_cliente);
 
@@ -287,7 +288,8 @@ int validar_entrada(int sala, int socket)
 
 void menu(int socket, cliente cliente)
 {
-
+    char enter_continuar[50] = "Pressione enter para continuar!\n";
+    
     int invalido = 1, sala, limite, escolha;
     bool tem_sala_ativa = false;
     char opcao_invalida[] = "Escolha invalida, digite novamente\n";
@@ -312,6 +314,7 @@ void menu(int socket, cliente cliente)
         case LISTAR_SALAS:
             invalido = 0;
             lista_salas();
+            send(novo_descritor_arquivo, enter_continuar, strlen(enter_continuar), 0);
             break;
 
         case ENTRAR_SALA:
@@ -346,6 +349,7 @@ void menu(int socket, cliente cliente)
             recv(socket, buffer, MAX_STR_SIZE, 0);
             limite = atoi(buffer);
             sala = cria_sala(limite, socket);
+            send(novo_descritor_arquivo, enter_continuar, strlen(enter_continuar), 0);
             break;
         case DESCONECTAR:
             invalido = 0;
@@ -357,6 +361,8 @@ void menu(int socket, cliente cliente)
             break;
         }
     }
+
+    send(socket, "\n", strlen("\n"), 0);
 }
 
 void validar_nome(int socket, char *nome, int *tam_nome)
