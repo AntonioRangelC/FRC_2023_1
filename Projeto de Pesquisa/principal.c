@@ -213,6 +213,7 @@ int main(int argc, char *argv[])
                     printf("else\n");
                     memset(&buffer, 0, sizeof(buffer));
                     num_bytes = recv(id_socket, buffer, sizeof(buffer), 0);
+                    printf("BUFFER: %s\n", buffer);
 
                     // Encontra a sala que o descritor do socker se encontra
                     int sala_id;
@@ -227,7 +228,7 @@ int main(int argc, char *argv[])
                             break;
 
                     // Desconexao forcada
-                    if (num_bytes == 0)
+                    if (strncmp(buffer, "/sair", 5) == 0)
                     {
                         printf("Desconectando forcadamente o descritor %d\n", id_socket);
                         sair_da_sala(id_socket, sala_id, cliente_id, 1);
@@ -292,7 +293,7 @@ void menu(int socket, cliente cliente)
     
     int invalido = 1, sala, limite, escolha;
     bool tem_sala_ativa = false;
-    char opcao_invalida[] = "Escolha invalida, digite novamente\n";
+    char opcao_invalida[] = "Escolha invalida, pressione enter e digite novamente\n";
     char opcoes[] = "[1] Listar salas disponiveis\n[2] Entrar em sala de bate-papo\n[3] Criar sala de bate-papo\n[4] Desconectar\n";
     char entrada[2];
     // for(int aux = 0; aux < MAX_STR_SIZE; aux++){
@@ -405,7 +406,6 @@ void sair_da_sala(int socket_descritor_arquivo, int sala_id, int cliente_id, int
     if (retirar_master == 1)
         FD_CLR(socket_descritor_arquivo, &master);
     FD_CLR(socket_descritor_arquivo, &salas[sala_id].sala_fd);
-
     // E caso a quantidade_clientes fique igual 0, deve-se fechar a mesma
     // deixando-a inativa e desalocando o vetor de clientes
     if (salas[sala_id].quantidade_clientes == 0)
@@ -414,6 +414,21 @@ void sair_da_sala(int socket_descritor_arquivo, int sala_id, int cliente_id, int
         free(salas[sala_id].clientes);
         salas[sala_id].ativo = false;
     }
+
+    // char saiu_sala[20] = "Você saiu da sala ";
+    // char saida_sala_id[3];
+    // sprintf(saida_sala_id, "%d", sala_id);
+    // char *msg_saida =  (char *)malloc(50 * sizeof(char));
+    // if (msg_saida == NULL)
+    //{
+    //     printf("Erro ao alocar memória para mensagem de saída de sala!\n");
+    // }
+    // strcpy(msg_saida, saiu_sala);
+    /// strcat(msg_saida, saida_sala_id);
+    // strcat(msg_saida, ". Pressione enter para acessar o menu.\n");
+    char saiu_sala[60] = "Você saiu dessa sala. Pressione enter para acessar o menu\n";
+    send(socket_descritor_arquivo, saiu_sala, strlen(saiu_sala), 0);
+    menu(socket_descritor_arquivo, clientes_aplicacao[cliente_id]);
 }
 
 void lista_salas()
@@ -509,7 +524,7 @@ void entrar_na_sala(int socket_descritor_arquivo, int sala_id, cliente cliente)
     sprintf(sala_char, "%d", sala_id);
     strcat(msg, "Voce esta na sala ");
     strcat(msg, sala_char);
-    strcat(msg, "\n");
+    strcat(msg, "\nDigite /sair para sair da sala\n");
     send(socket_descritor_arquivo, msg, strlen(msg), 0);
     printf("Sala %d: file descriptor %d entrando.\n", sala_id, socket_descritor_arquivo);
     // Para inserir na sala, deve-se aumentar a quantidade_clientes, adicionar
