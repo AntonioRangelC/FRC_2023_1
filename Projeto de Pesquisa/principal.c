@@ -60,7 +60,6 @@ void lista_salas();
 int cria_sala(int limite, int socket);
 void envia_msg(int socket_descritor_arquivo, int server_sd, int sala_id, int cliente_id);
 void entrar_na_sala(int socket_descritor_arquivo, int sala_id, cliente cliente);
-void executa_comando(int socket_descritor_arquivo, int sala_id, int cliente_id);
 void menu(int socket, cliente cliente);
 int validar_entrada(int sala, int socket);
 void validar_nome(int socket, char *nome, int *tam_nome);
@@ -661,51 +660,3 @@ void lista_participantes_sala(int socket, int sala_id){
     }
     send(socket, enter_continuar, strlen(enter_continuar), 0);
 }
-
-// void executa_comando (int socket_descritor_arquivo, int sala_id, int cliente_id) {
-//     buffer[strlen(buffer) - 2] = '\0';
-//     printf("Comando \"%s\" acionado na sala %d pelo file descriptor %d\n", buffer, socket_descritor_arquivo, sala_id);
-//     char resp_buf[MAX_STR_SIZE];
-
-//     // Se o recv retornar 0 ou a mensagem foi de sair
-//     // retira o socket descriptor do cesto
-//     if (strncmp(buffer+1, "sair", 4) == 0 || strncmp(buffer+1, "s", 1) == 0) {
-//         printf("Desconectando descritor %d\n", socket_descritor_arquivo);
-//         strcpy(resp_buf, "Cliente Desconectado\n");
-//         send(socket_descritor_arquivo, resp_buf, strlen(resp_buf), 0);
-//         close(socket_descritor_arquivo);
-//         sair_da_sala(socket_descritor_arquivo, sala_id, cliente_id, 1);
-//     }
-
-//     // Caso o comando seja listar, deve-se passar por todos os
-//     // clientes ativos da sala e lista-los enviando-os com sends
-//     if (strncmp(buffer+1, "listar", 6) == 0 || strncmp(buffer+1, "l", 1) == 0) {
-//         send(socket_descritor_arquivo, "\n======= Clientes Conectados Na Sala =======", 40, 0);
-//         for (int i = 0; i < salas[sala_id].limite; i++) {
-//             cliente c = salas[sala_id].clientes[i];
-//             if (c.ativo == 1 && c.cliente_sd != socket_descritor_arquivo) {
-//                 char nome[] = "\n";
-//                 strcat(nome, c.nome);
-//                 send(socket_descritor_arquivo, nome, strlen(nome), 0);
-//             }
-//             else if (c.ativo == 1 && c.cliente_sd == socket_descritor_arquivo) {
-//                 char nome[] = "\n[";
-//                 strcat(nome, c.nome);
-//                 strcat(nome, "]");
-//                 send(socket_descritor_arquivo, nome, strlen(nome), 0);
-//             }
-//         }
-//         send(socket_descritor_arquivo, "\n\n", 2, 0);
-//     }
-
-//     // Caso o cliente queira trocar de sala, deve-se executar duas
-//     // rotinas, a de sair de uma sala e a de inserir em um sala
-//     if (strncmp(buffer+1, "trocar_sala", 11) == 0 || strncmp(buffer+1, "t", 1) == 0) {
-//         recv(socket_descritor_arquivo, buffer, MAX_STR_SIZE, 0);
-//         int nova_sala = atoi(buffer);
-//         char nome[MAX_STR_SIZE];
-//         strcpy(nome, salas[sala_id].clientes[cliente_id].nome);
-//         sair_da_sala(socket_descritor_arquivo, sala_id, cliente_id, 0);
-//         entrar_na_sala(socket_descritor_arquivo, nova_sala, nome, strlen(nome));
-//     }
-// }
