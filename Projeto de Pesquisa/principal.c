@@ -1,3 +1,14 @@
+/*
+Autores: 
+    - Antonio Rangel Chaves - 180098021
+    - Antonio Ferreira de Castro Neto - 190044799
+    - Enzo Gabriel Guedes Queiroz Saraiva - 160119006
+
+*/
+
+
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
